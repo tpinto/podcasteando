@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Podcaster</title>
+    <script src="javascripts/jquery-2.0.3.min.js"></script>
+    <script src="javascripts/jquery.savefile.min.js"></script>
+    <script src="javascripts/mustache.js"></script>
+
+    <link rel="stylesheet" href="stylesheets/base.css">
+    <link rel="stylesheet" href="stylesheets/skeleton.css">
+    <link rel="stylesheet" href="stylesheets/layout.css">
+    <link rel="stylesheet" href="stylesheets/custom.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="sixteen columns">
+            <h1>Podcaster</h1>
+            <hr>
+
+            <label for="base_xml_file">Start with a Podcast XML file: <input type="file" id="base_xml_file"></label>
+
+            <form action="">
+                <fieldset>
+                    <legend>Show details</legend>
+
+                    <div class="eight columns clearfix alpha">
+                        <!-- In nested columns give the first column a class of alpha
+                        and the second a class of omega -->
+                            <label for="show_title">Title</label>
+                            <input id="show_title" type="text">
+            
+                            <label for="show_link">Webpage</label>
+                            <input id="show_link" type="text">
+            
+                            <label for="show_feed_link">XML Feed URL</label>
+                            <input id="show_feed_link" type="text">
+
+                            <label for="show_description">Description</label>
+                            <input id="show_description" type="text">
+
+                            <label for="show_language">Language</label>
+                            <input id="show_language" type="text">
+
+                            <label for="show_language">Is the show explicit?</label>
+                            <input id="show_itunes_explicit" type="checkbox">
+                    </div>
+                    <div class="eight columns clearfix omega">
+                            <label for="show_itunes_author">iTunes Author</label>
+                            <input id="show_itunes_author" type="text">
+
+                            <label for="show_itunes_subtitle">iTunes Subtitle</label>
+                            <input id="show_itunes_subtitle" type="text">
+        
+                            <label for="show_itunes_summary">iTunes Summary</label>
+                            <input id="show_itunes_summary" type="text">
+
+                            <label for="show_itunes_owner_name">iTunes Owner Name</label>
+                            <input id="show_itunes_owner_name" type="text">
+
+                            <label for="show_itunes_owner_email">iTunes Owner Email</label>
+                            <input id="show_itunes_owner_email" type="text">
+        
+                            <label for="show_itunes_category">iTunes Category</label>
+                            <input id="show_itunes_category" type="text">
+        
+                            <label for="show_itunes_image">iTunes Image</label>
+                            <input id="show_itunes_image" type="file">
+                            <img id="show_itunes_image_preview" src="" width="210px" height="210px">
+                    </div>
+                </fieldset>
+
+                <div id="episodes">
+                </div>
+            </form>
+            
+            <a href="#" class="button add-episode">Add episode</a> or <span>Drop MP3 file here</span> or <input type="file" id="new_episode_file">
+
+
+            <a href="skeleton.html" download="podcast.xml" class="full-width button">download xml</a>
+        </div>
+    </div><!-- container -->
+    
+    <script type="text/javascript">
+        var episodeCounter = 1;
+        var episodeTemplate = '<fieldset>\
+            <legend>Episode {{episodeId}}</legend>\
+            <div class="eight columns clearfix alpha">\
+            <label for="episode_{{episodeId}}_title">Title</label>\
+            <input id="episode_{{episodeId}}_title" type="text" value="{{title}}">\
+            <label for="episode_{{episodeId}}_itunes_author">iTunes Author</label>\
+            <input id="episode_{{episodeId}}_itunes_author" type="text" value="{{itunes_author}}">\
+            <label for="episode_{{episodeId}}_itunes_subtitle">iTunes Subtitle</label>\
+            <input id="episode_{{episodeId}}_itunes_subtitle" type="text" value="{{itunes_subtitle}}">\
+            <label for="episode_{{episodeId}}_itunes_summary">iTunes Summary</label>\
+            <input id="episode_{{episodeId}}_itunes_summary" type="text" value="{{itunes_summary}}">\
+            </div>\
+            <div class="eight columns clearfix omega">\
+            <label for="episode_{{episodeId}}_itunes_duration">iTunes Duration (HH:MM:SS)</label>\
+            <input id="episode_{{episodeId}}_itunes_duration" type="text" value="{{itunes_duration}}">\
+            <label for="episode_{{episodeId}}_itunes_image">iTunes Image</label>\
+            <input id="episode_{{episodeId}}_itunes_image" type="text" value="{{itunes_image}}">\
+            <img id="episode_{{episodeId}}_itunes_image_preview" src="{{itunes_image}}" width="210px" height="210px">\
+            <label for="episode_{{episodeId}}_itunes_enclosure">Enclosure</label>\
+            <input id="episode_{{episodeId}}_itunes_enclosure" type="text" value="{{itunes_enclosure}}">\
+            <label for="episode_{{episodeId}}_itunes_length">Length (bits)</label>\
+            <input id="episode_{{episodeId}}_itunes_length" type="text" value="{{itunes_length}}">\
+            <label for="episode_{{episodeId}}_itunes_pubDate">iTunes Publication Date</label>\
+            <input id="episode_{{episodeId}}_itunes_pubDate" type="text" value="{{itunes_pubDate}}">\
+            </div>\
+        </fieldset>'
+
+        $('.add-episode').click(function(){
+            $(Mustache.render(episodeTemplate, {
+                episodeId: episodeCounter
+            })).appendTo("#episodes");
+            episodeCounter++;
+            return false;
+        });
+
+        var xmlDoc;
+
+        $('#base_xml_file').change(function(evt){
+            var file = evt.target.files[0];
+            console.log(file.name + " " + file.size + " " + file.lastModifiedDate);
+
+            var freader = new FileReader();             
+            freader.onloadend = function(theFile) {                     
+                //console.log("before: " + this.result);
+
+                xmlDoc = $($.parseXML(this.result));
+                
+                $("#show_title").val(xmlDoc.find("rss").find("channel > title").text());
+                $("#show_link").val(xmlDoc.find("rss").find("channel > link").text());
+                $("#show_language").val(xmlDoc.find("rss").find("channel > language").text());
+                
+                $("#show_itunes_author").val(xmlDoc.find("rss").find("channel > author").text());
+                $("#show_itunes_subtitle").val(xmlDoc.find("rss").find("channel > subtitle").text());
+                $("#show_itunes_summary").val(xmlDoc.find("rss").find("channel > summary").text());
+
+                $("#show_description").val(xmlDoc.find("rss").find("channel > description").text());
+
+                $("#show_itunes_owner_name").val(xmlDoc.find("rss").find("channel > itunes\\:owner > name").text());
+                $("#show_itunes_owner_email").val(xmlDoc.find("rss").find("channel > itunes\\:owner > email").text());
+
+                $("#show_itunes_image_preview").attr("src", xmlDoc.find("rss").find("channel > image").attr("href"));
+                
+                $("#show_feed_link").val(xmlDoc.find("rss").find("channel > link[href]").attr("href"));
+
+                xmlDoc.find("rss").find("channel > item").each(function(index, item){
+                    $(Mustache.render(episodeTemplate, {
+                        episodeId: episodeCounter,
+                        title: $(item).find('title').text(),
+                        itunes_author: $(item).find('author').text(),
+                        itunes_subtitle: $(item).find('subtitle').text(),
+                        itunes_summary: $(item).find('summary').text(),
+                        itunes_duration: $(item).find('duration').text(),
+                        itunes_image: $(item).find('image').attr("href"),
+                        itunes_enclosure: $(item).find('enclosure').attr("url"),
+                        itunes_length: $(item).find('enclosure').attr("length"),
+                        itunes_pubDate: $(item).find('pubDate').text()
+                    })).appendTo("#episodes");
+                    
+                    episodeCounter++;
+                });
+            };
+            freader.readAsText(file);
+        });
+
+        /*
+        function writeFile () {
+            var serializer = new XMLSerializer();
+            var str = serializer.serializeToString(parsed);
+            var bb = new Blob([str],{type:'charset=utf-8'}); 
+            fileWriter.write(bb);
+        }
+        */
+    </script>
+</body>
+</html>
